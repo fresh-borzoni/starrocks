@@ -97,11 +97,12 @@ public class DefaultWorkerProvider implements WorkerProvider {
         public DefaultWorkerProvider captureAvailableWorkers(SystemInfoService systemInfoService,
                                      boolean preferComputeNode, int numUsedComputeNodes,
                                      ComputationFragmentSchedulingPolicy computationFragmentSchedulingPolicy,
-                                     ComputeResource computeResource) {
+                                     ComputeResource computeResource,
+                                     boolean skipBlackList) {
 
             ImmutableMap<Long, ComputeNode> idToComputeNode =
                     buildComputeNodeInfo(systemInfoService, numUsedComputeNodes, 
-                                         computationFragmentSchedulingPolicy, computeResource);
+                                         computationFragmentSchedulingPolicy, computeResource, skipBlackList);
 
             ImmutableMap<Long, ComputeNode> idToBackend = ImmutableMap.copyOf(systemInfoService.getIdToBackend());
 
@@ -117,7 +118,8 @@ public class DefaultWorkerProvider implements WorkerProvider {
             }
 
             return new DefaultWorkerProvider(idToBackend, idToComputeNode,
-                    filterAvailableWorkers(idToBackend), filterAvailableWorkers(idToComputeNode),
+                    filterAvailableWorkers(idToBackend, skipBlackList), 
+                    filterAvailableWorkers(idToComputeNode, skipBlackList),
                     preferComputeNode, computeResource);
         }
     }
@@ -365,7 +367,8 @@ public class DefaultWorkerProvider implements WorkerProvider {
     private static ImmutableMap<Long, ComputeNode> buildComputeNodeInfo(SystemInfoService systemInfoService,
                                   int numUsedComputeNodes,
                                   ComputationFragmentSchedulingPolicy computationFragmentSchedulingPolicy,
-                                  ComputeResource computeResource) {
+                                  ComputeResource computeResource,
+                                  boolean skipBlackList) {
         //define Node Pool
         Map<Long, ComputeNode> computeNodes = new HashMap<>();
 
@@ -386,7 +389,7 @@ public class DefaultWorkerProvider implements WorkerProvider {
                 ComputeNode computeNode =
                         getNextWorker(idToComputeNode, DefaultWorkerProvider::getNextComputeNodeIndex, computeResource);
                 Preconditions.checkNotNull(computeNode);
-                if (!isWorkerAvailable(computeNode)) {
+                if (!isWorkerAvailable(computeNode, skipBlackList)) {
                     continue;
                 }
                 computeNodes.put(computeNode.getId(), computeNode);
@@ -396,7 +399,7 @@ public class DefaultWorkerProvider implements WorkerProvider {
                     ComputeNode backend =
                             getNextWorker(idToBackend, DefaultWorkerProvider::getNextBackendIndex, computeResource);
                     Preconditions.checkNotNull(backend);
-                    if (!isWorkerAvailable(backend)) {
+                    if (!isWorkerAvailable(backend, skipBlackList)) {
                         continue;
                     }
                     computeNodes.put(backend.getId(), backend);
@@ -409,8 +412,8 @@ public class DefaultWorkerProvider implements WorkerProvider {
         return ImmutableMap.copyOf(computeNodes);
     }
 
-    public static boolean isWorkerAvailable(ComputeNode worker) {
-        return worker.isAlive() && !SimpleScheduler.isInBlocklist(worker.getId());
+    public static boolean isWorkerAvailable(ComputeNode worker, boolean skipBlackList) {
+        return worker.isAlive() && (skipBlackList || !SimpleScheduler.isInBlocklist(worker.getId()));
     }
 
     @VisibleForTesting
@@ -418,10 +421,11 @@ public class DefaultWorkerProvider implements WorkerProvider {
         return NEXT_COMPUTE_NODE_INDEX;
     }
 
-    private static <C extends ComputeNode> ImmutableMap<Long, C> filterAvailableWorkers(ImmutableMap<Long, C> workers) {
+    private static <C extends ComputeNode> ImmutableMap<Long, C> filterAvailableWorkers(
+            ImmutableMap<Long, C> workers, boolean skipBlackList) {
         return ImmutableMap.copyOf(
                 workers.entrySet().stream()
-                        .filter(entry -> isWorkerAvailable(entry.getValue()))
+                        .filter(entry -> isWorkerAvailable(entry.getValue(), skipBlackList))
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
         );
     }

@@ -73,7 +73,8 @@ public class DefaultSharedDataWorkerProvider implements WorkerProvider {
                 boolean preferComputeNode,
                 int numUsedComputeNodes,
                 ComputationFragmentSchedulingPolicy computationFragmentSchedulingPolicy,
-                ComputeResource computeResource) {
+                ComputeResource computeResource,
+                boolean skipBlackList) {
 
             final WarehouseManager warehouseManager = GlobalStateMgr.getCurrentState().getWarehouseMgr();
             final ImmutableMap.Builder<Long, ComputeNode> builder = ImmutableMap.builder();
@@ -85,7 +86,7 @@ public class DefaultSharedDataWorkerProvider implements WorkerProvider {
                 LOG.debug("idToComputeNode: {}", idToComputeNode);
             }
 
-            ImmutableMap<Long, ComputeNode> availableComputeNodes = filterAvailableWorkers(idToComputeNode);
+            ImmutableMap<Long, ComputeNode> availableComputeNodes = filterAvailableWorkers(idToComputeNode, skipBlackList);
             if (availableComputeNodes.isEmpty()) {
                 Warehouse warehouse = warehouseManager.getWarehouse(computeResource.getWarehouseId());
                 throw ErrorReportException.report(ErrorCode.ERR_NO_NODES_IN_WAREHOUSE, warehouse.getName());
@@ -291,10 +292,11 @@ public class DefaultSharedDataWorkerProvider implements WorkerProvider {
         return NEXT_COMPUTE_NODE_INDEX;
     }
 
-    private static ImmutableMap<Long, ComputeNode> filterAvailableWorkers(ImmutableMap<Long, ComputeNode> workers) {
+    private static ImmutableMap<Long, ComputeNode> filterAvailableWorkers(
+            ImmutableMap<Long, ComputeNode> workers, boolean skipBlackList) {
         ImmutableMap.Builder<Long, ComputeNode> builder = new ImmutableMap.Builder<>();
         for (Map.Entry<Long, ComputeNode> entry : workers.entrySet()) {
-            if (entry.getValue().isAlive() && !SimpleScheduler.isInBlocklist(entry.getKey())) {
+            if (entry.getValue().isAlive() && (skipBlackList || !SimpleScheduler.isInBlocklist(entry.getKey()))) {
                 builder.put(entry);
             }
         }

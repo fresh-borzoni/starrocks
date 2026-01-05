@@ -882,7 +882,7 @@ public class OlapTableSink extends DataSink {
             WorkerProvider.Factory workerProviderFactory = new DefaultSharedDataWorkerProvider.Factory();
             WorkerProvider workerProvider = workerProviderFactory.captureAvailableWorkers(
                     GlobalStateMgr.getCurrentState().getNodeMgr().getClusterInfo(), false, 0,
-                    SessionVariableConstants.ComputationFragmentSchedulingPolicy.ALL_NODES, computeResource);
+                    SessionVariableConstants.ComputationFragmentSchedulingPolicy.ALL_NODES, computeResource, false);
             if (workerProvider.allowUsingBackupNode()) {
                 for (TTabletLocation location : locationParam.getTablets()) {
                     Map<Long, Long> replacePair = new HashMap<>();

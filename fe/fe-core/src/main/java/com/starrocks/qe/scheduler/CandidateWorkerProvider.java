@@ -55,7 +55,8 @@ public class CandidateWorkerProvider extends DefaultWorkerProvider implements Wo
                 SystemInfoService systemInfoService,
                 boolean preferComputeNode, int numUsedComputeNodes,
                 SessionVariableConstants.ComputationFragmentSchedulingPolicy computationFragmentSchedulingPolicy,
-                ComputeResource computeResource) {
+                ComputeResource computeResource,
+                boolean skipBlackList) {
             HistoricalNodeMgr historicalNodeMgr = GlobalStateMgr.getCurrentState().getHistoricalNodeMgr();
             ImmutableMap<Long, ComputeNode> idToBackend = getHistoricalBackends(systemInfoService, historicalNodeMgr,
                     computeResource);
@@ -69,7 +70,8 @@ public class CandidateWorkerProvider extends DefaultWorkerProvider implements Wo
             }
 
             return new CandidateWorkerProvider(idToBackend, idToComputeNode,
-                    filterAvailableWorkers(idToBackend), filterAvailableWorkers(idToComputeNode),
+                    filterAvailableWorkers(idToBackend, skipBlackList), 
+                    filterAvailableWorkers(idToComputeNode, skipBlackList),
                     preferComputeNode, computeResource);
         }
     }
@@ -176,10 +178,11 @@ public class CandidateWorkerProvider extends DefaultWorkerProvider implements Wo
         return NEXT_BACKEND_INDEX.getAndIncrement();
     }
 
-    private static <C extends ComputeNode> ImmutableMap<Long, C> filterAvailableWorkers(ImmutableMap<Long, C> workers) {
+    private static <C extends ComputeNode> ImmutableMap<Long, C> filterAvailableWorkers(
+            ImmutableMap<Long, C> workers, boolean skipBlackList) {
         return ImmutableMap.copyOf(
                 workers.entrySet().stream()
-                        .filter(entry -> isWorkerAvailable(entry.getValue()))
+                        .filter(entry -> isWorkerAvailable(entry.getValue(), skipBlackList))
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
         );
     }

@@ -187,7 +187,8 @@ public class HDFSBackendSelector implements BackendSelector {
         WorkerProvider candidateWorkerProvider = factory.captureAvailableWorkers(
                 GlobalStateMgr.getCurrentState().getNodeMgr().getClusterInfo(),
                 sessionVariable.isPreferComputeNode(), sessionVariable.getUseComputeNodes(),
-                sessionVariable.getComputationFragmentSchedulingPolicy(), workerProvider.getComputeResource());
+                sessionVariable.getComputationFragmentSchedulingPolicy(), workerProvider.getComputeResource(),
+                sessionVariable.isSkipBlackList());
         return candidateWorkerProvider;
     }
 
