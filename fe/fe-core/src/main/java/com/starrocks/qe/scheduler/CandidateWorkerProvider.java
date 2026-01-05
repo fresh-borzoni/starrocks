@@ -62,7 +62,7 @@ public class CandidateWorkerProvider extends DefaultWorkerProvider implements Wo
                     computeResource);
             ImmutableMap<Long, ComputeNode> idToComputeNode =
                     buildComputeNodeInfo(systemInfoService, historicalNodeMgr, idToBackend, numUsedComputeNodes,
-                            computationFragmentSchedulingPolicy, computeResource);
+                            computationFragmentSchedulingPolicy, computeResource, skipBlackList);
 
             if (LOG.isDebugEnabled()) {
                 LOG.debug("idToBackend: {}", idToBackend);
@@ -91,7 +91,8 @@ public class CandidateWorkerProvider extends DefaultWorkerProvider implements Wo
             ImmutableMap<Long, ComputeNode> idToBackend,
             int numUsedComputeNodes,
             SessionVariableConstants.ComputationFragmentSchedulingPolicy computationFragmentSchedulingPolicy,
-            ComputeResource computeResource) {
+            ComputeResource computeResource,
+            boolean skipBlackList) {
         //get CN and BE from historicalNodeMgr
         ImmutableMap<Long, ComputeNode> idToComputeNode = getHistoricalComputeNodes(
                 systemInfoService, historicalNodeMgr, computeResource);
@@ -113,7 +114,7 @@ public class CandidateWorkerProvider extends DefaultWorkerProvider implements Wo
                 ComputeNode computeNode =
                         getNextWorker(idToComputeNode, CandidateWorkerProvider::getNextComputeNodeIndex, computeResource);
                 Preconditions.checkNotNull(computeNode);
-                if (!isWorkerAvailable(computeNode)) {
+                if (!isWorkerAvailable(computeNode, skipBlackList)) {
                     continue;
                 }
                 computeNodes.put(computeNode.getId(), computeNode);
@@ -123,7 +124,7 @@ public class CandidateWorkerProvider extends DefaultWorkerProvider implements Wo
                     ComputeNode backend =
                             getNextWorker(idToBackend, CandidateWorkerProvider::getNextBackendIndex, computeResource);
                     Preconditions.checkNotNull(backend);
-                    if (!isWorkerAvailable(backend)) {
+                    if (!isWorkerAvailable(backend, skipBlackList)) {
                         continue;
                     }
                     computeNodes.put(backend.getId(), backend);
