@@ -33,6 +33,7 @@ import com.starrocks.planner.ScanNode;
 import com.starrocks.planner.TableFunctionTableSink;
 import com.starrocks.qe.scheduler.DefaultWorkerProvider;
 import com.starrocks.qe.scheduler.LazyWorkerProvider;
+import com.starrocks.qe.scheduler.SkipBlacklistWorkerProvider;
 import com.starrocks.qe.scheduler.TFragmentInstanceFactory;
 import com.starrocks.qe.scheduler.WorkerProvider;
 import com.starrocks.qe.scheduler.assignment.FragmentAssignmentStrategyFactory;
@@ -97,8 +98,7 @@ public class CoordinatorPreprocessor {
         this.lazyWorkerProvider = LazyWorkerProvider.of(() -> workerProviderFactory.captureAvailableWorkers(
                 GlobalStateMgr.getCurrentState().getNodeMgr().getClusterInfo(),
                 sessionVariable.isPreferComputeNode(), sessionVariable.getUseComputeNodes(),
-                sessionVariable.getComputationFragmentSchedulingPolicy(), jobSpec.getComputeResource(),
-                sessionVariable.isSkipBlackList()));
+                sessionVariable.getComputationFragmentSchedulingPolicy(), jobSpec.getComputeResource()));
 
         this.fragmentAssignmentStrategyFactory = new FragmentAssignmentStrategyFactory(connectContext, jobSpec, executionDAG);
 
@@ -118,8 +118,7 @@ public class CoordinatorPreprocessor {
         this.lazyWorkerProvider = LazyWorkerProvider.of(() -> workerProviderFactory.captureAvailableWorkers(
                 GlobalStateMgr.getCurrentState().getNodeMgr().getClusterInfo(),
                 sessionVariable.isPreferComputeNode(), sessionVariable.getUseComputeNodes(),
-                sessionVariable.getComputationFragmentSchedulingPolicy(), jobSpec.getComputeResource(),
-                sessionVariable.isSkipBlackList()));
+                sessionVariable.getComputationFragmentSchedulingPolicy(), jobSpec.getComputeResource()));
 
         Map<PlanFragmentId, PlanFragment> fragmentMap =
                 fragments.stream().collect(Collectors.toMap(PlanFragment::getFragmentId, Function.identity()));
@@ -151,10 +150,21 @@ public class CoordinatorPreprocessor {
     }
 
     private WorkerProvider.Factory newWorkerProviderFactory() {
+        SessionVariable sessionVariable = connectContext.getSessionVariable();
+        boolean skipBlackList = sessionVariable.isSkipBlackList();
+        
         if (RunMode.isSharedDataMode()) {
-            return new DefaultSharedDataWorkerProvider.Factory();
+            if (skipBlackList) {
+                return new com.starrocks.lake.qe.scheduler.SkipBlacklistSharedDataWorkerProvider.Factory();
+            } else {
+                return new DefaultSharedDataWorkerProvider.Factory();
+            }
         } else {
-            return new DefaultWorkerProvider.Factory();
+            if (skipBlackList) {
+                return new SkipBlacklistWorkerProvider.Factory();
+            } else {
+                return new DefaultWorkerProvider.Factory();
+            }
         }
     }
 
@@ -225,8 +235,7 @@ public class CoordinatorPreprocessor {
         lazyWorkerProvider = LazyWorkerProvider.of(() -> workerProviderFactory.captureAvailableWorkers(
                 GlobalStateMgr.getCurrentState().getNodeMgr().getClusterInfo(),
                 sessionVariable.isPreferComputeNode(), sessionVariable.getUseComputeNodes(),
-                sessionVariable.getComputationFragmentSchedulingPolicy(), jobSpec.getComputeResource(),
-                sessionVariable.isSkipBlackList()));
+                sessionVariable.getComputationFragmentSchedulingPolicy(), jobSpec.getComputeResource()));
 
         jobSpec.getFragments().forEach(PlanFragment::reset);
     }

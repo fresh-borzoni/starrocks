@@ -142,7 +142,7 @@ public class DefaultSharedDataWorkerProviderTest {
         return factory.captureAvailableWorkers(
                 GlobalStateMgr.getCurrentState().getNodeMgr().getClusterInfo(), true,
                 -1, ComputationFragmentSchedulingPolicy.COMPUTE_NODES_ONLY,
-                WarehouseManager.DEFAULT_RESOURCE, false);
+                WarehouseManager.DEFAULT_RESOURCE);
     }
 
     private static void testUsingWorkerHelper(WorkerProvider workerProvider, Long workerId) {

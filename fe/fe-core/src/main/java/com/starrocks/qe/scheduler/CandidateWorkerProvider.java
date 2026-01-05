@@ -55,14 +55,13 @@ public class CandidateWorkerProvider extends DefaultWorkerProvider implements Wo
                 SystemInfoService systemInfoService,
                 boolean preferComputeNode, int numUsedComputeNodes,
                 SessionVariableConstants.ComputationFragmentSchedulingPolicy computationFragmentSchedulingPolicy,
-                ComputeResource computeResource,
-                boolean skipBlackList) {
+                ComputeResource computeResource) {
             HistoricalNodeMgr historicalNodeMgr = GlobalStateMgr.getCurrentState().getHistoricalNodeMgr();
             ImmutableMap<Long, ComputeNode> idToBackend = getHistoricalBackends(systemInfoService, historicalNodeMgr,
                     computeResource);
             ImmutableMap<Long, ComputeNode> idToComputeNode =
                     buildComputeNodeInfo(systemInfoService, historicalNodeMgr, idToBackend, numUsedComputeNodes,
-                            computationFragmentSchedulingPolicy, computeResource, skipBlackList);
+                            computationFragmentSchedulingPolicy, computeResource);
 
             if (LOG.isDebugEnabled()) {
                 LOG.debug("idToBackend: {}", idToBackend);
@@ -70,8 +69,7 @@ public class CandidateWorkerProvider extends DefaultWorkerProvider implements Wo
             }
 
             return new CandidateWorkerProvider(idToBackend, idToComputeNode,
-                    filterAvailableWorkers(idToBackend, skipBlackList), 
-                    filterAvailableWorkers(idToComputeNode, skipBlackList),
+                    filterAvailableWorkers(idToBackend), filterAvailableWorkers(idToComputeNode),
                     preferComputeNode, computeResource);
         }
     }
@@ -91,8 +89,7 @@ public class CandidateWorkerProvider extends DefaultWorkerProvider implements Wo
             ImmutableMap<Long, ComputeNode> idToBackend,
             int numUsedComputeNodes,
             SessionVariableConstants.ComputationFragmentSchedulingPolicy computationFragmentSchedulingPolicy,
-            ComputeResource computeResource,
-            boolean skipBlackList) {
+            ComputeResource computeResource) {
         //get CN and BE from historicalNodeMgr
         ImmutableMap<Long, ComputeNode> idToComputeNode = getHistoricalComputeNodes(
                 systemInfoService, historicalNodeMgr, computeResource);
@@ -114,7 +111,7 @@ public class CandidateWorkerProvider extends DefaultWorkerProvider implements Wo
                 ComputeNode computeNode =
                         getNextWorker(idToComputeNode, CandidateWorkerProvider::getNextComputeNodeIndex, computeResource);
                 Preconditions.checkNotNull(computeNode);
-                if (!isWorkerAvailable(computeNode, skipBlackList)) {
+                if (!isWorkerAvailable(computeNode)) {
                     continue;
                 }
                 computeNodes.put(computeNode.getId(), computeNode);
@@ -124,7 +121,7 @@ public class CandidateWorkerProvider extends DefaultWorkerProvider implements Wo
                     ComputeNode backend =
                             getNextWorker(idToBackend, CandidateWorkerProvider::getNextBackendIndex, computeResource);
                     Preconditions.checkNotNull(backend);
-                    if (!isWorkerAvailable(backend, skipBlackList)) {
+                    if (!isWorkerAvailable(backend)) {
                         continue;
                     }
                     computeNodes.put(backend.getId(), backend);
@@ -179,11 +176,10 @@ public class CandidateWorkerProvider extends DefaultWorkerProvider implements Wo
         return NEXT_BACKEND_INDEX.getAndIncrement();
     }
 
-    private static <C extends ComputeNode> ImmutableMap<Long, C> filterAvailableWorkers(
-            ImmutableMap<Long, C> workers, boolean skipBlackList) {
+    private static <C extends ComputeNode> ImmutableMap<Long, C> filterAvailableWorkers(ImmutableMap<Long, C> workers) {
         return ImmutableMap.copyOf(
                 workers.entrySet().stream()
-                        .filter(entry -> isWorkerAvailable(entry.getValue(), skipBlackList))
+                        .filter(entry -> isWorkerAvailable(entry.getValue()))
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
         );
     }

@@ -39,14 +39,12 @@ public interface WorkerProvider {
          * @param preferComputeNode                   Whether to prefer using compute nodes over backend nodes.
          * @param numUsedComputeNodes                 The maximum number of used compute nodes.
          * @param computationFragmentSchedulingPolicy The schedule policy of backend and compute nodes.
-         * @param skipBlackList                       Whether to skip backend blacklist verification.
          */
         WorkerProvider captureAvailableWorkers(SystemInfoService systemInfoService,
                                                boolean preferComputeNode,
                                                int numUsedComputeNodes,
                                                ComputationFragmentSchedulingPolicy computationFragmentSchedulingPolicy,
-                                               ComputeResource computeResource,
-                                               boolean skipBlackList);
+                                               ComputeResource computeResource);
     }
 
     /**
