@@ -14,6 +14,7 @@
 
 package com.starrocks.lake.qe.scheduler;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.starrocks.common.ErrorCode;
 import com.starrocks.common.ErrorReportException;
@@ -83,5 +84,33 @@ public class SkipBlacklistSharedDataWorkerProvider extends DefaultSharedDataWork
                                              ImmutableMap<Long, ComputeNode> availableID2ComputeNode,
                                              ComputeResource computeResource) {
         super(id2ComputeNode, availableID2ComputeNode, computeResource);
+    }
+
+    /**
+     * Override selectBackupWorker to skip blacklist verification.
+     * This ensures consistent behavior with initial worker selection when skip_black_list is enabled.
+     */
+    @Override
+    public long selectBackupWorker(long workerId) {
+        if (availableID2ComputeNode.isEmpty() || !id2ComputeNode.containsKey(workerId)) {
+            return -1;
+        }
+        if (allComputeNodeIds == null) {
+            createAvailableIdList();
+        }
+        Preconditions.checkNotNull(allComputeNodeIds);
+        Preconditions.checkState(allComputeNodeIds.contains(workerId));
+
+        int startPos = allComputeNodeIds.indexOf(workerId);
+        int attempts = allComputeNodeIds.size();
+        while (attempts-- > 0) {
+            startPos = (startPos + 1) % allComputeNodeIds.size();
+            long buddyId = allComputeNodeIds.get(startPos);
+            // Skip blacklist check - only verify buddyId != workerId and is in availableID2ComputeNode
+            if (buddyId != workerId && availableID2ComputeNode.containsKey(buddyId)) {
+                return buddyId;
+            }
+        }
+        return -1;
     }
 }
