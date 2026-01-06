@@ -70,14 +70,7 @@ public class SkipBlacklistSharedDataWorkerProviderTest {
             }
         };
 
-        // Mock WarehouseManager
-        new MockUp<WarehouseManager>() {
-            @Mock
-            public List<Long> getAllComputeNodeIds(ComputeResource computeResource) {
-                return Arrays.asList(10L, 11L, 12L, 13L, 14L);
-            }
-        };
-
+        // Mock GlobalStateMgr and WarehouseManager
         new MockUp<GlobalStateMgr>() {
             @Mock
             public com.starrocks.server.NodeMgr getNodeMgr() {

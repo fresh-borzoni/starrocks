@@ -106,7 +106,7 @@ public class SkipBlacklistSharedDataWorkerProvider extends DefaultSharedDataWork
         while (attempts-- > 0) {
             startPos = (startPos + 1) % allComputeNodeIds.size();
             long buddyId = allComputeNodeIds.get(startPos);
-            // Skip blacklist check - only verify buddyId != workerId and is in availableID2ComputeNode
+            // Skip SimpleScheduler.isInBlocklist(buddyId) check - only verify buddyId != workerId and is in availableID2ComputeNode
             if (buddyId != workerId && availableID2ComputeNode.containsKey(buddyId)) {
                 return buddyId;
             }
